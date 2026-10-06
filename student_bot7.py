@@ -142,7 +142,7 @@ async def handle_student_qa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     text = update.message.text
     today = datetime.now(MM_TZ).date()
-
+    print("Student message received:", text)
     async with db_pool.acquire() as conn:
         await conn.execute(
             """
