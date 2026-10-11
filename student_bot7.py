@@ -31,6 +31,9 @@ DEVELOPER_CHAT_ID = int(os.getenv("DEVELOPER_CHAT_ID", "0"))
 # Notification ပို့ရန် စုစည်းထားသော Admin စာရင်း
 ADMIN_IDS = [cid for cid in (TEACHER_CHAT_ID, DEVELOPER_CHAT_ID, HEAD_TEACHER_CHAT_ID) if cid != 0]
 
+# 🟢 Batch ID သတ်မှတ်ခြင်း (၁၆ ယောက်အုပ်စုအတွက်)
+BATCH_ID = os.getenv("BATCH_ID", "batch_16")
+
 # Supabase Credentials (.env မှတဆင့် ခေါ်ယူခြင်း)
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
@@ -48,7 +51,7 @@ app = FastAPI()
 @app.get("/")
 @app.head("/")
 def health_check():
-    return {"status": "active", "bot": "Student Bot is running successfully!"}
+    return {"status": "active", "bot": "Student Bot (Batch 16) is running successfully!"}
 
 def run_fastapi():
     port = int(os.environ.get("PORT", 10000))
@@ -79,24 +82,25 @@ async def close_db():
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     async with db_pool.acquire() as conn:
+        # 🟢 students ဇယားတွင် မှတ်ပုံတင်သည့်အခါ batch_id ပါ ထည့်သွင်းမည်
         await conn.execute(
             """
-            INSERT INTO students (student_id, student_name)
-            VALUES ($1, $2)
-            ON CONFLICT (student_id) DO UPDATE SET student_name = $2;
+            INSERT INTO students (student_id, student_name, batch_id)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (student_id) DO UPDATE SET student_name = $2, batch_id = $3;
             """,
-            user.id, user.first_name
+            user.id, user.first_name, BATCH_ID
         )
 
     text = (
-        f"မင်္ဂလာပါ {user.first_name} 🙏\n\n"
+        f"မင်္ဂလာပါ {user.first_name} 🙏 (Batch 16)\n\n"
         "ဤ Bot သည် နေ့စဉ် သတိပဋ္ဌာန်နှင့် စိတ်လေ့ကျင့်မှု (Mindfulness Routine) များကို မှတ်သားပေးမည့် Bot ဖြစ်ပါသည်။\n\n"
         "• မနက်ပိုင်း (5:00 AM - 12:00 PM)\n"
         "• နေ့လည်ပိုင်း (12:00 PM - 5:00 PM)\n"
         "• ညနေပိုင်း (5:00 PM - 12:00 AM)\n\n"
-        "သတ်မှတ်ချိန်များတွင် အလုပ်စာရင်းများ ပို့ပေးပါမည်။ ပြီးစီးပါက Done ခလုတ်ကို နှိပ်ပေးပါခင်ဗျာ။\n"
+        "သတ်မှတ်ချိန်များတွင် အလုပ်စာရင်းများ ပို့ပေးပါမည်။ ပြီးစီးပါက Done ခလုတ်ကို နှိပ်ပေးပါခင်ဗျာ。\n"
         "သိလိုရာမေးခွန်း သို့မဟုတ် အတွေ့အကြုံများကိုလည်း အချိန်မရွေး စာရိုက်ပို့နိုင်ပါသည်။\n"
-        " ./my_detail_report ကိုနိပ်ပြီး ကိုယ့်ရဲ့ အလုပ်မှတ်တမ်းကို ကြည့်ရှုနိုင်ပါသည်။\n"
+        "`/my_detail_report` ကိုနှိပ်ပြီး ကိုယ့်ရဲ့ အလုပ်မှတ်တမ်းကို ကြည့်ရှုနိုင်ပါသည်။\n"
     )
     await update.message.reply_text(text)
 
@@ -138,10 +142,7 @@ async def handle_done_callback(update: Update, context: ContextTypes.DEFAULT_TYP
     except Exception as e:
         print(f"Callback edit error: {e}")
 
-
-       
 async def handle_student_qa(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """ကျောင်းသားက စာပို့ပါက DB တွင် သိမ်းပြီး ဆရာရော Developer ဆီပါ ခလုတ်များနှင့်တကွ ပို့ဆောင်ခြင်း"""
     user = update.effective_user
     text = update.message.text
     today = datetime.now(MM_TZ).date()
@@ -169,19 +170,16 @@ async def handle_student_qa(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         
         student_username = f"@{user.username}" if user.username else "မရှိပါ"
-        # Markdown Error မတက်စေရန် parse_mode ကို ဖြုတ်ထားခြင်း သို့မဟုတ် စာသားကို သတိပြုခြင်း
         alert_msg = (
-            f"📩 တပည့်ထံမှ စာ/တောင်းဆိုချက် ရောက်ရှိပါသည်\n"
+            f"📩 တပည့်ထံမှ စာ/တောင်းဆိုချက် ရောက်ရှိပါသည် (Batch 16)\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"👤 တပည့်: {user.first_name}\n"
             f"🆔 ID: {user.id}\n"
             f"🔗 Username: {student_username}\n\n"
-            f"💬 စာသား:\n\"{text}\"\n\n"
-            f"👉 အောက်ပါခလုတ်ကို နှိပ်၍ အဆိုပါတပည့်ထံ Checklist ချက်ချင်း ပို့နိုင်ပါသည် (သို့မဟုတ် /reply {user.id} ဖြင့် စာပြန်နိုင်ပါသည်)။"
+            f"💬 စာသား:\n\"{text}\"\n"
         )
 
         try:
-            # Bot Session ကို async with ဖြင့် သုံးခြင်းက ပို၍ လုံခြုံပြီး error ကင်းစေပါသည်
             async with Bot(token=TEACHER_BOT_TOKEN) as teacher_bot:
                 for admin_id in ADMIN_IDS:
                     try:
@@ -189,68 +187,11 @@ async def handle_student_qa(update: Update, context: ContextTypes.DEFAULT_TYPE):
                             chat_id=admin_id,
                             text=alert_msg,
                             reply_markup=InlineKeyboardMarkup(keyboard)
-                            # parse_mode="Markdown" ကို ခေတ္တဖြုတ်ထားပါ (Special characters ကြောင့် error မတက်စေရန်)
                         )
                     except Exception as e:
                         print(f"Failed to notify admin {admin_id}: {e}")
         except Exception as e:
             print(f"Failed to initialize teacher_bot: {e}")
-
-# ================= Routine Sender Helper =================
-
-async def broadcast_routine(app, section_name: str, header_text: str, target_chat_id=None):
-    today = datetime.now(MM_TZ).date()
-    
-    async with db_pool.acquire() as conn:
-        if target_chat_id:
-            students = [{"student_id": target_chat_id}]
-        else:
-            students = await conn.fetch("SELECT student_id FROM students;")
-
-        tasks = await conn.fetch(
-            "SELECT id, title, description FROM routine_templates WHERE section = $1 AND status = 'active' ORDER BY task_order ASC;",
-            section_name
-        )
-
-    if not tasks or not students:
-        return
-
-    for stu in students:
-        chat_id = stu["student_id"]
-        
-        async with db_pool.acquire() as conn:
-            done_rows = await conn.fetch(
-                "SELECT template_id FROM student_daily_logs WHERE student_id = $1 AND log_date = $2 AND is_done = TRUE;",
-                chat_id, today
-            )
-        done_ids = {r["template_id"] for r in done_rows}
-
-        try:
-            await app.bot.send_message(
-                chat_id=chat_id,
-                text=f"{header_text}\n\nအောက်ပါ လေ့ကျင့်မှုများကို ပြုလုပ်ပြီးပါက သက်ဆိုင်ရာခလုတ်ကို နှိပ်ပေးပါခင်ဗျာ -",
-                parse_mode="Markdown"
-            )
-
-            for idx, t in enumerate(tasks, start=1):
-                t_id = t["id"]
-                task_text = f"📌 *{idx}။ {t['title']}*"
-                if t["description"]:
-                    task_text += f"\n_{t['description']}_"
-
-                if t_id in done_ids:
-                    keyboard = [[InlineKeyboardButton("✅ ပြီးပါပြီ", callback_data="already_done")]]
-                else:
-                    keyboard = [[InlineKeyboardButton("လုပ်ဆောင်ပြီး (Done)", callback_data=f"done:{t_id}")]]
-
-                await app.bot.send_message(
-                    chat_id=chat_id,
-                    text=task_text,
-                    reply_markup=InlineKeyboardMarkup(keyboard),
-                    parse_mode="Markdown"
-                )
-        except Exception as e:
-            print(f"Error sending individual routines to {chat_id}: {e}")
 
 async def handle_dismiss_batch(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -270,7 +211,6 @@ async def handle_dismiss_batch(update: Update, context: ContextTypes.DEFAULT_TYP
             return
 
         message_ids_to_delete = row["message_ids"]
-
         for msg_id in message_ids_to_delete:
             try:
                 await context.bot.delete_message(chat_id=chat_id, message_id=msg_id)
@@ -281,31 +221,29 @@ async def handle_dismiss_batch(update: Update, context: ContextTypes.DEFAULT_TYP
 
     await context.bot.send_message(
         chat_id=chat_id,
-        text="🗑️ ထပ်နေသော စာရင်းကို အောင်မြင်စွာ ပယ်ဖျက်ပြီးပါပြီခင်ဗျာ။"
+        text="🗑️ ထပ်နေသော စာရင်းကို အောင်မြင်စွာ ပယ်ဖျက်ပြီးပါပြီခင်ဗျာ."
     )
+
 async def cmd_my_detail_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """ကျောင်းသား ကိုယ်တိုင် မိမိ၏ အသေးစိတ် အစီရင်ခံစာကို ကြည့်ရှုခြင်း (Student Bot အတွက်)"""
+    """ကျောင်းသား ကိုယ်တိုင် မိမိ၏ အသေးစိတ် အစီရင်ခံစာကို ကြည့်ရှုခြင်း (Batch 16)"""
     user_id = update.effective_user.id
     today = datetime.now(MM_TZ).date()
     start_date = today - timedelta(days=7)
 
     async with db_pool.acquire() as conn:
-        # ကျောင်းသား၏ Telegram ID ဖြင့် စစ်ဆေးခြင်း
+        # 🟢 Telegram ID အပြင် batch_id ပါ တိုက်ဆိုင်စစ်ဆေးခြင်း
         student = await conn.fetchrow(
-            "SELECT student_id, student_name FROM students WHERE student_id = $1;", 
-            user_id
+            "SELECT student_id, student_name FROM students WHERE student_id = $1 AND batch_id = $2;", 
+            user_id, BATCH_ID
         )
 
         if not student:
-            await update.message.reply_text("❌ သင်သည် စာရင်းသွင်းထားသော သင်တန်းသား အဖြစ် မှတ်တမ်းတင်ထားခြင်း မရှိသေးပါ။")
+            await update.message.reply_text("❌ သင်သည် ဤ Batch 16 စာရင်းသွင်းထားသော သင်တန်းသား အဖြစ် မှတ်တမ်းတင်ထားခြင်း မရှိသေးပါ။")
             return
 
-        # Student Bot ဘက်တွင် Report ကို တိုက်ရိုက်ထုတ်ပေးမည့် function ကို ခေါ်မည်
         await generate_and_send_report(update, context, student["student_id"], student["student_name"], start_date, today)
 
-
 async def generate_and_send_report(update_or_query, context, student_id, student_name, start_date, today):
-    """သင်တန်းသားတစ်ဦးချင်းစီ၏ (၇) ရက်တာ အချက်အလက်များကို စုစည်းပြီး ပို့ပေးသည့် Helper Function"""
     async with db_pool.acquire() as conn:
         detail_query = """
             SELECT 
@@ -329,7 +267,6 @@ async def generate_and_send_report(update_or_query, context, student_id, student
 
     if not rows:
         msg = f"📌 {student_name} အတွက် ပြီးခဲ့သည့် ၇ ရက်အတွင်း ဒေတာ မရှိသေးပါ။"
-        # CallbackQuery ဖြစ်နေလျှင် edit_message_text သုံးခြင်းက ပိုလုံခြုံပါတယ်
         if isinstance(update_or_query, Update) and update_or_query.callback_query:
             await update_or_query.callback_query.edit_message_text(msg)
         elif hasattr(update_or_query, "edit_message_text"):
@@ -338,8 +275,7 @@ async def generate_and_send_report(update_or_query, context, student_id, student
             await update_or_query.message.reply_text(msg)
         return
 
-    # စာသားပုံစံဖြင့် Report တည်ဆောက်ခြင်း (Markdown error မတက်အောင် ပုံစံရိုးရိုး သို့မဟုတ် ခွဲထုတ်သုံးပါ)
-    report_text = f"📊 {student_name} ၏ (၇) ရက်တာ အစီရင်ခံစာ\n\n"
+    report_text = f"📊 {student_name} ၏ (၇) ရက်တာ အစီရင်ခံစာ (Batch 16)\n\n"
     done_count = sum(1 for r in rows if r["is_done"])
     total_count = len(rows)
     report_text += f"✅ ပြီးစီးမှု: {done_count}/{total_count} Tasks\n"
@@ -350,7 +286,6 @@ async def generate_and_send_report(update_or_query, context, student_id, student
         report_text += f"{r['log_date']} | {r['section']} | {r['task_title']} - {status_icon}\n"
 
     try:
-        # CallbackQuery လား၊ Message လား အတိအကျ ခွဲခြားပေးခြင်း
         if isinstance(update_or_query, Update) and update_or_query.callback_query:
             await update_or_query.callback_query.edit_message_text(report_text)
         elif hasattr(update_or_query, "edit_message_text"):
@@ -360,9 +295,6 @@ async def generate_and_send_report(update_or_query, context, student_id, student
             await message.reply_text(report_text)
     except Exception as e:
         print(f"❌ Send Report Error: {e}")
-        # Error တက်ရင်တောင် markdown ကို ဖြုတ်ပြီး ပို့ကြည့်ရန်
-        if isinstance(update_or_query, Update) and update_or_query.callback_query:
-            await update_or_query.callback_query.message.reply_text(report_text)
 
 # ================= Main Runner =================
 
@@ -377,12 +309,10 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
         print(f"❌ Error ဖြစ်ပေါ်ပါသည်: {err}")
 
 def main():
-    # 1. FastAPI server ကို background thread ဖြင့် စတင်ခြင်း (Render အတွက် Port ဖွင့်ရန်)
     server_thread = threading.Thread(target=run_fastapi, daemon=True)
     server_thread.start()
     print("🌐 FastAPI Dummy Server started in background thread.")
 
-    # 2. Telegram Bot တည်ဆောက်ခြင်း
     request_config = HTTPXRequest(
         connection_pool_size=8,
         read_timeout=30.0,
@@ -403,11 +333,10 @@ def main():
     app_bot.add_handler(CallbackQueryHandler(handle_done_callback, pattern=r"^(done:|already_done)"))
     app_bot.add_handler(CallbackQueryHandler(handle_dismiss_batch, pattern=r"^dismiss_batch:"))
     app_bot.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_student_qa))
-    # Handler ချိတ်ဆက်ရန်
     app_bot.add_handler(CommandHandler("my_detail_report", cmd_my_detail_report))
     app_bot.add_error_handler(error_handler)
 
-    print("🚀 Student Bot is starting polling...")
+    print("🚀 Student Bot (Batch 16) is starting polling...")
     app_bot.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
