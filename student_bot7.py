@@ -32,7 +32,7 @@ DEVELOPER_CHAT_ID = int(os.getenv("DEVELOPER_CHAT_ID", "0"))
 ADMIN_IDS = [cid for cid in (TEACHER_CHAT_ID, DEVELOPER_CHAT_ID, HEAD_TEACHER_CHAT_ID) if cid != 0]
 
 # 🟢 Batch ID သတ်မှတ်ခြင်း (၁၆ ယောက်အုပ်စုအတွက်)
-BATCH_ID = os.getenv("BATCH_ID", "batch_16")
+BATCH_ID = os.getenv("BATCH_ID", "batch_TharThar")
 
 # Supabase Credentials (.env မှတဆင့် ခေါ်ယူခြင်း)
 DB_USER = os.getenv("DB_USER")
@@ -93,7 +93,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     text = (
-        f"မင်္ဂလာပါ {user.first_name} 🙏 (Batch 16)\n\n"
+        f"မင်္ဂလာပါ {user.first_name} 🙏 (Batch TharThar)\n\n"
         "ဤ Bot သည် နေ့စဉ် သတိပဋ္ဌာန်နှင့် စိတ်လေ့ကျင့်မှု (Mindfulness Routine) များကို မှတ်သားပေးမည့် Bot ဖြစ်ပါသည်။\n\n"
         "• မနက်ပိုင်း (5:00 AM - 12:00 PM)\n"
         "• နေ့လည်ပိုင်း (12:00 PM - 5:00 PM)\n"
@@ -336,7 +336,7 @@ def main():
     app_bot.add_handler(CommandHandler("my_detail_report", cmd_my_detail_report))
     app_bot.add_error_handler(error_handler)
 
-    print("🚀 Student Bot (Batch 16) is starting polling...")
+    print("🚀 Student Bot (Batch TharThar) is starting polling...")
     app_bot.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
