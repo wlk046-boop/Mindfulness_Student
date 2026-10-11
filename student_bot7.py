@@ -227,36 +227,7 @@ async def handle_dismiss_batch(update: Update, context: ContextTypes.DEFAULT_TYP
         text="🗑️ ထပ်နေသော စာရင်းကို အောင်မြင်စွာ ပယ်ဖျက်ပြီးပါပြီခင်ဗျာ."
     )
     
-async def handle_dismiss_batch2(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
 
-    batch_id = query.data.split(":")[1]
-    chat_id = query.message.chat_id
-
-    async with db_pool.acquire() as conn:
-        row = await conn.fetchrow(
-            "SELECT message_ids FROM routine_batch_logs WHERE batch_id = $1 AND student_id = $2;",
-            batch_id, chat_id
-        )
-
-        if not row or not row["message_ids"]:
-            await query.edit_message_text("စာရင်းဟောင်းများကို ရှာမတွေ့တော့ပါခင်ဗျာ။")
-            return
-
-        message_ids_to_delete = row["message_ids"]
-        for msg_id in message_ids_to_delete:
-            try:
-                await context.bot.delete_message(chat_id=chat_id, message_id=msg_id)
-            except TelegramError:
-                pass
-
-        await conn.execute("DELETE FROM routine_batch_logs WHERE batch_id = $1;", batch_id)
-
-    await context.bot.send_message(
-        chat_id=chat_id,
-        text="🗑️ ထပ်နေသော စာရင်းကို အောင်မြင်စွာ ပယ်ဖျက်ပြီးပါပြီခင်ဗျာ."
-    )
 
 async def cmd_my_detail_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """ကျောင်းသား ကိုယ်တိုင် မိမိ၏ အသေးစိတ် အစီရင်ခံစာကို ကြည့်ရှုခြင်း (Batch TharThar)"""
@@ -294,10 +265,11 @@ async def generate_and_send_report(update_or_query, context, student_id, student
                 ON l.template_id = t.id 
                 AND l.student_id = $1 
                 AND l.log_date = d.date_val
-            WHERE t.status = 'active'
+            WHERE t.status = 'active' AND t.batch_id = $4
             ORDER BY d.date_val DESC, t.section ASC, t.task_order ASC;
         """
-        rows = await conn.fetch(detail_query, student_id, start_date, today)
+        # 🟢 $4 နေရာတွင် BATCH_ID ကို ထည့်သွင်းပေးခြင်း
+        rows = await conn.fetch(detail_query, student_id, start_date, today, BATCH_ID)
 
     if not rows:
         msg = f"📌 {student_name} အတွက် ပြီးခဲ့သည့် ၇ ရက်အတွင်း ဒေတာ မရှိသေးပါ။"
