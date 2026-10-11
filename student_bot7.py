@@ -156,7 +156,7 @@ async def handle_student_qa(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user.id, user.first_name, today, text
         )
 
-    await update.message.reply_text("✅ ဆရာ့ထံ အကြောင်းကြားစာ ပို့လိုက်ပါပြီခင်ဗျာ[cite: 3]။")
+    await update.message.reply_text("✅ ဆရာ့ထံ အကြောင်းကြားစာ ပို့လိုက်ပါပြီခင်ဗျာ။")
 
     if TEACHER_BOT_TOKEN and ADMIN_IDS:
         keyboard = [
@@ -255,7 +255,7 @@ async def handle_dismiss_batch2(update: Update, context: ContextTypes.DEFAULT_TY
 
     await context.bot.send_message(
         chat_id=chat_id,
-        text="🗑️ ထပ်နေသော စာရင်းကို အောင်မြင်စွာ ပယ်ဖျက်ပြီးပါပြီခင်ဗျာ[cite: 3]."
+        text="🗑️ ထပ်နေသော စာရင်းကို အောင်မြင်စွာ ပယ်ဖျက်ပြီးပါပြီခင်ဗျာ."
     )
 
 async def cmd_my_detail_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -272,7 +272,7 @@ async def cmd_my_detail_report(update: Update, context: ContextTypes.DEFAULT_TYP
         )
 
         if not student:
-            await update.message.reply_text("❌ သင်သည် ဤ Batch TharThar စာရင်းသွင်းထားသော သင်တန်းသား အဖြစ် မှတ်တမ်းတင်ထားခြင်း မရှိသေးပါ။")
+            await update.message.reply_text("❌ သင်သည် ဤ Batch TharTharစာရင်းသွင်းထားသော သင်တန်းသား အဖြစ် မှတ်တမ်းတင်ထားခြင်း မရှိသေးပါ။")
             return
 
         await generate_and_send_report(update, context, student["student_id"], student["student_name"], start_date, today)
