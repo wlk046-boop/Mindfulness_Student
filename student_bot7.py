@@ -51,7 +51,7 @@ app = FastAPI()
 @app.get("/")
 @app.head("/")
 def health_check():
-    return {"status": "active", "bot": "Student Bot (Batch 16) is running successfully!"}
+    return {"status": "active", "bot": "Student Bot (Batch TharThar) is running successfully!"}
 
 def run_fastapi():
     port = int(os.environ.get("PORT", 10000))
@@ -156,7 +156,7 @@ async def handle_student_qa(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user.id, user.first_name, today, text
         )
 
-    await update.message.reply_text("✅ ဆရာ့ထံ အကြောင်းကြားစာ ပို့လိုက်ပါပြီခင်ဗျာ။")
+    await update.message.reply_text("✅ ဆရာ့ထံ အကြောင်းကြားစာ ပို့လိုက်ပါပြီခင်ဗျာ[cite: 3]။")
 
     if TEACHER_BOT_TOKEN and ADMIN_IDS:
         keyboard = [
@@ -171,7 +171,7 @@ async def handle_student_qa(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         student_username = f"@{user.username}" if user.username else "မရှိပါ"
         alert_msg = (
-            f"📩 တပည့်ထံမှ စာ/တောင်းဆိုချက် ရောက်ရှိပါသည် (Batch 16)\n"
+            f"📩 တပည့်ထံမှ စာ/တောင်းဆိုချက် ရောက်ရှိပါသည် (Batch TharThar)\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"👤 တပည့်: {user.first_name}\n"
             f"🆔 ID: {user.id}\n"
@@ -194,6 +194,40 @@ async def handle_student_qa(update: Update, context: ContextTypes.DEFAULT_TYPE):
             print(f"Failed to initialize teacher_bot: {e}")
 
 async def handle_dismiss_batch(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    # Callback data မှ routine_batch_id ကို ယူခြင်း
+    routine_batch_id = query.data.split(":")[1]
+    chat_id = query.message.chat_id
+
+    async with db_pool.acquire() as conn:
+        # 🟢 routine_batch_id ဖြင့် ရှာဖွေခြင်း
+        row = await conn.fetchrow(
+            "SELECT message_ids FROM routine_batch_logs WHERE routine_batch_id = $1 AND student_id = $2;",
+            routine_batch_id, chat_id
+        )
+
+        if not row or not row["message_ids"]:
+            await query.edit_message_text("စာရင်းဟောင်းများကို ရှာမတွေ့တော့ပါခင်ဗျာ။")
+            return
+
+        message_ids_to_delete = row["message_ids"]
+        for msg_id in message_ids_to_delete:
+            try:
+                await context.bot.delete_message(chat_id=chat_id, message_id=msg_id)
+            except TelegramError:
+                pass
+
+        # 🟢 routine_batch_id ဖြင့် ဖျက်ပစ်ခြင်း
+        await conn.execute("DELETE FROM routine_batch_logs WHERE routine_batch_id = $1;", routine_batch_id)
+
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text="🗑️ ထပ်နေသော စာရင်းကို အောင်မြင်စွာ ပယ်ဖျက်ပြီးပါပြီခင်ဗျာ."
+    )
+    
+async def handle_dismiss_batch2(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
@@ -221,11 +255,11 @@ async def handle_dismiss_batch(update: Update, context: ContextTypes.DEFAULT_TYP
 
     await context.bot.send_message(
         chat_id=chat_id,
-        text="🗑️ ထပ်နေသော စာရင်းကို အောင်မြင်စွာ ပယ်ဖျက်ပြီးပါပြီခင်ဗျာ."
+        text="🗑️ ထပ်နေသော စာရင်းကို အောင်မြင်စွာ ပယ်ဖျက်ပြီးပါပြီခင်ဗျာ[cite: 3]."
     )
 
 async def cmd_my_detail_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """ကျောင်းသား ကိုယ်တိုင် မိမိ၏ အသေးစိတ် အစီရင်ခံစာကို ကြည့်ရှုခြင်း (Batch 16)"""
+    """ကျောင်းသား ကိုယ်တိုင် မိမိ၏ အသေးစိတ် အစီရင်ခံစာကို ကြည့်ရှုခြင်း (Batch TharThar)"""
     user_id = update.effective_user.id
     today = datetime.now(MM_TZ).date()
     start_date = today - timedelta(days=7)
@@ -238,7 +272,7 @@ async def cmd_my_detail_report(update: Update, context: ContextTypes.DEFAULT_TYP
         )
 
         if not student:
-            await update.message.reply_text("❌ သင်သည် ဤ Batch 16 စာရင်းသွင်းထားသော သင်တန်းသား အဖြစ် မှတ်တမ်းတင်ထားခြင်း မရှိသေးပါ။")
+            await update.message.reply_text("❌ သင်သည် ဤ Batch TharThar စာရင်းသွင်းထားသော သင်တန်းသား အဖြစ် မှတ်တမ်းတင်ထားခြင်း မရှိသေးပါ။")
             return
 
         await generate_and_send_report(update, context, student["student_id"], student["student_name"], start_date, today)
@@ -275,7 +309,7 @@ async def generate_and_send_report(update_or_query, context, student_id, student
             await update_or_query.message.reply_text(msg)
         return
 
-    report_text = f"📊 {student_name} ၏ (၇) ရက်တာ အစီရင်ခံစာ (Batch 16)\n\n"
+    report_text = f"📊 {student_name} ၏ (၇) ရက်တာ အစီရင်ခံစာ (Batch TharThar)\n\n"
     done_count = sum(1 for r in rows if r["is_done"])
     total_count = len(rows)
     report_text += f"✅ ပြီးစီးမှု: {done_count}/{total_count} Tasks\n"
