@@ -32,7 +32,7 @@ DEVELOPER_CHAT_ID = int(os.getenv("DEVELOPER_CHAT_ID", "0"))
 ADMIN_IDS = [cid for cid in (TEACHER_CHAT_ID, DEVELOPER_CHAT_ID, HEAD_TEACHER_CHAT_ID) if cid != 0]
 
 # 🟢 Batch ID သတ်မှတ်ခြင်း (၁၆ ယောက်အုပ်စုအတွက်)
-BATCH_ID = os.getenv("BATCH_ID", "batch_TharThar")
+BATCH_ID = os.getenv("BATCH_ID", "batch_Youth")
 
 # Supabase Credentials (.env မှတဆင့် ခေါ်ယူခြင်း)
 DB_USER = os.getenv("DB_USER")
@@ -51,7 +51,7 @@ app = FastAPI()
 @app.get("/")
 @app.head("/")
 def health_check():
-    return {"status": "active", "bot": "Student Bot (Batch TharThar) is running successfully!"}
+    return {"status": "active", "bot": f"Student Bot ({BATCH_ID}) is running successfully!"}
 
 def run_fastapi():
     port = int(os.environ.get("PORT", 10000))
@@ -69,6 +69,7 @@ async def init_db():
         database=DB_NAME,
         min_size=1,
         max_size=5,
+        statement_cache_size=0
     )
     print("✅ Connected to Supabase Pooler.")
 
@@ -93,7 +94,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     text = (
-        f"မင်္ဂလာပါ {user.first_name} 🙏 (Batch TharThar)\n\n"
+        f"မင်္ဂလာပါ {user.first_name} 🙏 ({BATCH_ID})\n\n"
         "ဤ Bot သည် နေ့စဉ် သတိပဋ္ဌာန်နှင့် စိတ်လေ့ကျင့်မှု (Mindfulness Routine) များကို မှတ်သားပေးမည့် Bot ဖြစ်ပါသည်။\n\n"
         "• မနက်ပိုင်း (5:00 AM - 12:00 PM)\n"
         "• နေ့လည်ပိုင်း (12:00 PM - 5:00 PM)\n"
@@ -171,7 +172,7 @@ async def handle_student_qa(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         student_username = f"@{user.username}" if user.username else "မရှိပါ"
         alert_msg = (
-            f"📩 တပည့်ထံမှ စာ/တောင်းဆိုချက် ရောက်ရှိပါသည် (Batch TharThar)\n"
+            f"📩 တပည့်ထံမှ စာ/တောင်းဆိုချက် ရောက်ရှိပါသည် (Batch Inner Engineering)\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"👤 တပည့်: {user.first_name}\n"
             f"🆔 ID: {user.id}\n"
@@ -227,10 +228,39 @@ async def handle_dismiss_batch(update: Update, context: ContextTypes.DEFAULT_TYP
         text="🗑️ ထပ်နေသော စာရင်းကို အောင်မြင်စွာ ပယ်ဖျက်ပြီးပါပြီခင်ဗျာ."
     )
     
+async def handle_dismiss_batch2(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
 
+    batch_id = query.data.split(":")[1]
+    chat_id = query.message.chat_id
+
+    async with db_pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT message_ids FROM routine_batch_logs WHERE batch_id = $1 AND student_id = $2;",
+            batch_id, chat_id
+        )
+
+        if not row or not row["message_ids"]:
+            await query.edit_message_text("စာရင်းဟောင်းများကို ရှာမတွေ့တော့ပါခင်ဗျာ။")
+            return
+
+        message_ids_to_delete = row["message_ids"]
+        for msg_id in message_ids_to_delete:
+            try:
+                await context.bot.delete_message(chat_id=chat_id, message_id=msg_id)
+            except TelegramError:
+                pass
+
+        await conn.execute("DELETE FROM routine_batch_logs WHERE batch_id = $1;", batch_id)
+
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text="🗑️ ထပ်နေသော စာရင်းကို အောင်မြင်စွာ ပယ်ဖျက်ပြီးပါပြီခင်ဗျာ."
+    )
 
 async def cmd_my_detail_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """ကျောင်းသား ကိုယ်တိုင် မိမိ၏ အသေးစိတ် အစီရင်ခံစာကို ကြည့်ရှုခြင်း (Batch TharThar)"""
+    """ကျောင်းသား ကိုယ်တိုင် မိမိ၏ အသေးစိတ် အစီရင်ခံစာကို ကြည့်ရှုခြင်း f"({BATCH_ID})"""
     user_id = update.effective_user.id
     today = datetime.now(MM_TZ).date()
     start_date = today - timedelta(days=7)
@@ -243,7 +273,7 @@ async def cmd_my_detail_report(update: Update, context: ContextTypes.DEFAULT_TYP
         )
 
         if not student:
-            await update.message.reply_text("❌ သင်သည် ဤ Batch TharTharစာရင်းသွင်းထားသော သင်တန်းသား အဖြစ် မှတ်တမ်းတင်ထားခြင်း မရှိသေးပါ။")
+            await update.message.reply_text(f"❌ သင်သည် ဤ ({BATCH_ID}) စာရင်းသွင်းထားသော သင်တန်းသား အဖြစ် မှတ်တမ်းတင်ထားခြင်း မရှိသေးပါ။")
             return
 
         await generate_and_send_report(update, context, student["student_id"], student["student_name"], start_date, today)
@@ -281,7 +311,7 @@ async def generate_and_send_report(update_or_query, context, student_id, student
             await update_or_query.message.reply_text(msg)
         return
 
-    report_text = f"📊 {student_name} ၏ (၇) ရက်တာ အစီရင်ခံစာ (Batch TharThar)\n\n"
+    report_text = f"📊 {student_name} ၏ (၇) ရက်တာ အစီရင်ခံစာ ({BATCH_ID}) \n\n"
     done_count = sum(1 for r in rows if r["is_done"])
     total_count = len(rows)
     report_text += f"✅ ပြီးစီးမှု: {done_count}/{total_count} Tasks\n"
@@ -342,7 +372,7 @@ def main():
     app_bot.add_handler(CommandHandler("my_detail_report", cmd_my_detail_report))
     app_bot.add_error_handler(error_handler)
 
-    print("🚀 Student Bot (Batch TharThar) is starting polling...")
+    print(f"🚀 Student Bot ({ BATCH_ID}) is starting polling...")
     app_bot.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
