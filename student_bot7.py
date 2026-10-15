@@ -172,7 +172,7 @@ async def handle_student_qa(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         student_username = f"@{user.username}" if user.username else "မရှိပါ"
         alert_msg = (
-            f"📩 တပည့်ထံမှ စာ/တောင်းဆိုချက် ရောက်ရှိပါသည် (Batch Inner Engineering)\n"
+            f"📩 တပည့်ထံမှ စာ/တောင်းဆိုချက် ရောက်ရှိပါသည် ({BATCH_ID})\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"👤 တပည့်: {user.first_name}\n"
             f"🆔 ID: {user.id}\n"
